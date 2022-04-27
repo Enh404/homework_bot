@@ -4,6 +4,7 @@ import sys
 import time
 import requests
 import telegram
+from pprint import pprint
 
 from dotenv import load_dotenv
 from exceptions import exceptions
@@ -26,10 +27,6 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s %(name)s %(message)s',
-    level=logging.INFO)
-
 
 def send_message(bot, message):
     """Отправка сообщения в Telegram чат."""
@@ -44,40 +41,52 @@ def get_api_answer(current_timestamp):
     """Выполнение запроса к эндпоинту API-сервиса."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except ConnectionError as exc:
+        logging.error(f'Ошибка при запросе к основному API: {exc}')
     if response.status_code != 200:
         error = f'Неудовлетворительный статус ответа: {response.status_code}'
-        raise exceptions.CheckResponseStatusException(error)
+        raise exceptions.BadResponseStatus(error)
     return response.json()
 
 
 def check_response(response):
     """Проверка ответа API на корректность."""
-    if not response['homeworks']:
+    response = dict(response)
+    if not isinstance(response, dict):
+        error = f'Response не является словарем {response}'
+        raise exceptions.WrongTypeResponse(error)
+    if 'homeworks' not in response:
         error = f'Ключа homeworks в ответе нет: {response}'
-        exceptions.CheckKeyHomeworksException(error)
+        raise exceptions.WrongKeyHomeworks(error)
     homework = response['homeworks']
     if not isinstance(homework, list):
-        message = 'Неверный тип данных'
-        raise TypeError(message)
+        error = 'Homework не является списком'
+        raise TypeError(error)
     if not homework:
         error = f'Список {homework[0]} пуст'
-        raise exceptions.EmptyValueException(error)
+        return bot.send_message(TELEGRAM_CHAT_ID, error)
     logging.info('Status of homework update')
     return homework
 
 
 def parse_status(homework):
     """Информация о статусе домашней работы."""
-    if 'homework_name' and 'status' not in homework:
-        error = 'Ключи homework_name и status отсутствуют'
+    if not isinstance(homework, dict):
+        error = 'Homework не является словарем'
+        raise TypeError(error)
+    if 'homework_name' not in homework:
+        error = 'Ключ homework_name отсутствует'
         raise KeyError(error)
-    else:
-        homework_name = homework['homework_name']
-        homework_status = homework['status']
+    if 'status' not in homework:
+        error = 'Ключ status отсутствует'
+        raise KeyError(error)
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
     if homework_status not in HOMEWORK_STATUSES:
         error = f'Неизвестный статус: {homework_status}'
-        raise exceptions.StatusHWException(error)
+        raise exceptions.UnknownStatusHW(error)
     verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -105,39 +114,33 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        error = 'Необходимые перменные отсутствуют.'
-        logging.error(error, exc_info=True)
         sys.exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time() - 30 * 24 * 60 * 60)
     status = ''
-    while True:
+    while True:   
         try:
             response = get_api_answer(current_timestamp)
-        except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            logging.error(f'Ошибка при запросе к основному API: {error}')
-            time.sleep(RETRY_TIME)
-            continue
-        try:
             if check_response(response):
                 homework = check_response(response)
                 message = parse_status(homework[0])
                 if message != status:
                     send_message(bot, message)
                     status = message
-            current_timestamp = current_timestamp
-            time.sleep(RETRY_TIME)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if message != status:
                 send_message(bot, message)
                 status = message
             logging.error(error, exc_info=True)
-            time.sleep(RETRY_TIME)
+            continue
         finally:
             time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        level=logging.INFO
+    )
     main()

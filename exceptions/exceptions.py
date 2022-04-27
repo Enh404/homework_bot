@@ -1,18 +1,17 @@
-class CheckResponseStatusException(Exception):
-    def __init__(self, error):
-        super().__init__(error)
+class BadResponseStatus(Exception):
+    pass
+
+class WrongKeyHomeworks(Exception):
+    pass
 
 
-class CheckKeyHomeworksException(Exception):
-    def __init__(self, error):
-        super().__init__(error)
+class EmptyValue(Exception):
+    pass
 
 
-class EmptyValueException(Exception):
-    def __init__(self, error):
-        super().__init__(error)
+class UnknownStatusHW(Exception):
+    pass
 
 
-class StatusHWException(Exception):
-    def __init__(self, error):
-        super().__init__(error)
+class WrongTypeResponse(Exception):
+    pass
