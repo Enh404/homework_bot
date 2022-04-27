@@ -4,7 +4,6 @@ import sys
 import time
 import requests
 import telegram
-from pprint import pprint
 
 from dotenv import load_dotenv
 from exceptions import exceptions
@@ -66,7 +65,7 @@ def check_response(response):
         raise TypeError(error)
     if not homework:
         error = f'Список {homework[0]} пуст'
-        return bot.send_message(TELEGRAM_CHAT_ID, error)
+        raise exceptions.EmptyValue(error)
     logging.info('Status of homework update')
     return homework
 
@@ -118,7 +117,7 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time() - 30 * 24 * 60 * 60)
     status = ''
-    while True:   
+    while True:
         try:
             response = get_api_answer(current_timestamp)
             if check_response(response):
