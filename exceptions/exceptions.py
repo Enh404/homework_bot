@@ -1,6 +1,7 @@
 class BadResponseStatus(Exception):
     pass
 
+
 class WrongKeyHomeworks(Exception):
     pass
 
@@ -14,4 +15,8 @@ class UnknownStatusHW(Exception):
 
 
 class WrongTypeResponse(Exception):
+    pass
+
+
+class BadAPIRequest(Exception):
     pass

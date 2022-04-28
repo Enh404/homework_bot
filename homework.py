@@ -42,8 +42,9 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    except ConnectionError as exc:
-        logging.error(f'Ошибка при запросе к основному API: {exc}')
+    except Exception as error:
+        logging.error(f'Ошибка при запросе к основному API: {error}')
+        raise exceptions.BadAPIRequest(error)
     if response.status_code != 200:
         error = f'Неудовлетворительный статус ответа: {response.status_code}'
         raise exceptions.BadResponseStatus(error)
@@ -53,7 +54,7 @@ def get_api_answer(current_timestamp):
 def check_response(response):
     """Проверка ответа API на корректность."""
     response = dict(response)
-    if not isinstance(response, dict):
+    if type(response) is not dict:
         error = f'Response не является словарем {response}'
         raise exceptions.WrongTypeResponse(error)
     if 'homeworks' not in response:
@@ -66,7 +67,7 @@ def check_response(response):
     if not homework:
         error = f'Список {homework[0]} пуст'
         raise exceptions.EmptyValue(error)
-    logging.info('Status of homework update')
+    logging.debug('Status of homework update')
     return homework
 
 
@@ -120,8 +121,8 @@ def main():
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            if check_response(response):
-                homework = check_response(response)
+            homework = check_response(response)
+            if homework:
                 message = parse_status(homework[0])
                 if message != status:
                     send_message(bot, message)
@@ -132,7 +133,6 @@ def main():
                 send_message(bot, message)
                 status = message
             logging.error(error, exc_info=True)
-            continue
         finally:
             time.sleep(RETRY_TIME)
 
