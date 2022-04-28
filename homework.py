@@ -53,8 +53,8 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверка ответа API на корректность."""
-    response = dict(response)
-    if type(response) is not dict:
+    #правильно ли я понял? при таком решении не проходит pytest
+    if not isinstance(response, dict):
         error = f'Response не является словарем {response}'
         raise exceptions.WrongTypeResponse(error)
     if 'homeworks' not in response:
