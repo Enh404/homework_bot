@@ -33,11 +33,11 @@ Telegram-бот, который обращается к API сервиса Пр�
 `pip install -r requirements.txt`
 
 В консоле импортируем токены для ЯндексюПрактикум и для Телеграмм:
-
-`export PRACTICUM_TOKEN=<PRACTICUM_TOKEN>
+```
+export PRACTICUM_TOKEN=<PRACTICUM_TOKEN>
 export TELEGRAM_TOKEN=<TELEGRAM_TOKEN>
-export CHAT_ID=<CHAT_ID>`
-
+export CHAT_ID=<CHAT_ID>
+```
 Запускаем бота
 
 `python homework.py`
